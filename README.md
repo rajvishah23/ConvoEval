@@ -13,8 +13,8 @@
 
 | | URL |
 |---|---|
-| **UI** | [convoeval.vercel.app](https://convoeval.vercel.app) *(deploy instructions below)* |
-| **API** | [convoeval-api.railway.app](https://convoeval-api.railway.app) *(deploy instructions below)* |
+| **UI** | [convoeval.vercel.app](https://convo-eval.vercel.app/) *(deploy instructions below)* |
+| **API** | [convoeval-api.railway.app](https://web-production-b8690.up.railway.app) *(deploy instructions below)* |
 
 ---
 
