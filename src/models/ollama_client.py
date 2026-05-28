@@ -56,6 +56,8 @@ class OllamaClient:
 
     # ── HuggingFace backend ───────────────────────────────────────────────────
  # ── HuggingFace (Now supports Groq Proxy) ─────────────────────────────────
+    
+# ── HuggingFace (Now supports Groq Proxy) ─────────────────────────────────
     async def _hf_chat(self, messages: list[dict], system: Optional[str], max_tokens: int) -> str:
         session = await self._get_session()
         headers = {
@@ -67,21 +69,26 @@ class OllamaClient:
             full_messages.append({"role": "system", "content": system})
         full_messages.extend(messages)
 
+        # Build clean payload
         payload = {
-            "model": self.hf_model,
+            "model": str(self.hf_model).strip(),  # .strip() removes any accidental spaces from Railway UI
             "messages": full_messages,
             "max_tokens": max_tokens,
-            "temperature": 0.1,
+            "temperature": 0.2,                   # Swapped to 0.2 (safer default for Groq)
             "stream": False,
         }
         
-        # INTERCEPT AND ROUTE TO GROQ IF USING GROQ KEY
+        # Intercept and route to Groq if using Groq Key
         if str(self.hf_token).startswith("gsk_"):
             url = "https://api.groq.com/openai/v1/chat/completions"
         else:
             url = f"https://api-inference.huggingface.co/v1/chat/completions"
             
         async with session.post(url, headers=headers, json=payload) as resp:
+            # If Groq returns an error, let's capture the exact text description in our logs to read it
+            if resp.status != 200:
+                err_text = await resp.text()
+                logger.error(f"Groq API Error Response: {err_text}")
             resp.raise_for_status()
             data = await resp.json()
             return data["choices"][0]["message"]["content"]
