@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# Env — never commit real tokens
+.env
+
+# Results (generated)
+results/*.json
+results/*.csv
+!results/.gitkeep
+
+# OS
+.DS_Store
+*.log
+
+# Notebooks
+notebooks/.ipynb_checkpoints/

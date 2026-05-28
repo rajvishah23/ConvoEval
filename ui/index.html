@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ConvoEval — Conversation Benchmark UI</title>
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f1117; --bg2: #161b27; --bg3: #1e2535;
+    --border: rgba(255,255,255,0.08); --border2: rgba(255,255,255,0.15);
+    --text: #e8eaf0; --muted: #8892a4;
+    --accent: #6366f1; --accent2: #818cf8;
+    --success: #22c55e; --warn: #f59e0b; --danger: #ef4444; --info: #38bdf8;
+  }
+  body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; font-size: 14px; line-height: 1.6; min-height: 100vh; }
+  #root { display: flex; min-height: 100vh; }
+  ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+  input, textarea, select { background: var(--bg3); border: 1px solid var(--border2); color: var(--text); border-radius: 8px; padding: 8px 12px; font-family: inherit; font-size: 13px; width: 100%; outline: none; transition: border-color 0.15s; }
+  input:focus, textarea:focus, select:focus { border-color: var(--accent); }
+  button { cursor: pointer; font-family: inherit; font-size: 13px; border: none; border-radius: 8px; transition: all 0.15s; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useCallback } = React;
+const API = (window.CONVOEVAL_API_URL || "http://localhost:8000");
+
+const DOMAIN_COLORS = { linguistic:"#6366f1", pragmatics:"#38bdf8", safety:"#22c55e", emotion:"#f59e0b", personality:"#a78bfa", cognitive:"#34d399", health_lifestyle:"#fb7185", spiritual_values:"#fbbf24" };
+const DOMAIN_ICONS  = { linguistic:"💬", pragmatics:"🤝", safety:"🛡️", emotion:"❤️", personality:"🧠", cognitive:"⚡", health_lifestyle:"🌿", spiritual_values:"✨" };
+
+/* ── helpers ── */
+function ScoreBar({ score, max=5, color="#6366f1" }) {
+  return (
+    <div style={{display:"flex",alignItems:"center",gap:8}}>
+      <div style={{flex:1,height:6,background:"rgba(255,255,255,0.08)",borderRadius:3,overflow:"hidden"}}>
+        <div style={{width:`${(score/max)*100}%`,height:"100%",background:color,borderRadius:3,transition:"width 0.4s"}}/>
+      </div>
+      <span style={{fontSize:12,fontWeight:600,color,minWidth:16,fontFamily:"monospace"}}>{score}</span>
+    </div>
+  );
+}
+function ConfBadge({ value }) {
+  const color = value>=0.8?"#22c55e":value>=0.5?"#f59e0b":"#ef4444";
+  const label = value>=0.8?"High":value>=0.5?"Med":"Low";
+  return (
+    <span style={{display:"inline-flex",alignItems:"center",gap:4,background:`${color}20`,border:`1px solid ${color}40`,borderRadius:20,padding:"2px 8px",fontSize:11,color}}>
+      <span style={{width:6,height:6,borderRadius:"50%",background:color,display:"inline-block"}}/>
+      {label} {(value*100).toFixed(0)}%
+    </span>
+  );
+}
+function Spinner() {
+  return <span style={{display:"inline-block",width:14,height:14,border:"2px solid rgba(255,255,255,0.2)",borderTop:"2px solid var(--accent2)",borderRadius:"50%",animation:"spin 0.7s linear infinite"}}/>
+}
+
+/* ── sidebar ── */
+function Sidebar({ active, onTab, apiStatus }) {
+  const tabs = [["score","⚡","Score"],["facets","📋","Facets"],["samples","🗂️","Samples"],["docs","📖","Docs"]];
+  return (
+    <div style={{width:220,background:"var(--bg2)",borderRight:"1px solid var(--border)",display:"flex",flexDirection:"column",padding:"16px 0"}}>
+      <div style={{padding:"0 20px 16px",borderBottom:"1px solid var(--border)"}}>
+        <div style={{fontSize:18,fontWeight:600,letterSpacing:"-0.5px"}}>ConvoEval</div>
+        <div style={{fontSize:11,color:"var(--muted)",marginTop:2}}>Conversation Benchmark</div>
+      </div>
+      <nav style={{padding:"12px 8px",flex:1}}>
+        {tabs.map(([id,icon,label])=>(
+          <button key={id} onClick={()=>onTab(id)} style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"9px 12px",borderRadius:8,background:active===id?"rgba(99,102,241,0.15)":"transparent",color:active===id?"var(--accent2)":"var(--muted)",border:active===id?"1px solid rgba(99,102,241,0.25)":"1px solid transparent",marginBottom:2,textAlign:"left"}}>
+            <span style={{fontSize:16}}>{icon}</span>
+            <span style={{fontWeight:active===id?500:400}}>{label}</span>
+          </button>
+        ))}
+      </nav>
+      <div style={{padding:"12px 20px",borderTop:"1px solid var(--border)"}}>
+        <div style={{fontSize:11,color:"var(--muted)",marginBottom:6}}>API Status</div>
+        <div style={{display:"flex",alignItems:"center",gap:6}}>
+          <span style={{width:8,height:8,borderRadius:"50%",background:apiStatus==="ok"?"var(--success)":apiStatus==="checking"?"var(--warn)":"var(--danger)",display:"inline-block",flexShrink:0}}/>
+          <span style={{fontSize:12,color:"var(--muted)"}}>{apiStatus==="ok"?"Connected":apiStatus==="checking"?"Checking...":"Offline"}</span>
+        </div>
+        {apiStatus==="ok" && <div style={{fontSize:11,color:"var(--accent2)",marginTop:6,fontWeight:500}}>369 facets loaded</div>}
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════
+   SCORE TAB — real API calls
+══════════════════════════════════════ */
+function ScoreTab() {
+  const [messages, setMessages] = useState([
+    {role:"user",    content:"I've been feeling really anxious about my job lately."},
+    {role:"assistant",content:"That sounds really difficult. Can you tell me more about what's driving it? Is it the workload, the environment, or something else?"}
+  ]);
+  const [newRole,    setNewRole]    = useState("user");
+  const [newContent, setNewContent] = useState("");
+  const [facetInput, setFacetInput] = useState("");
+  const [selFacets,  setSelFacets]  = useState(["compassion","dishonesty","critical_reasoning","frankness","emotional_boundaries"]);
+  const [results,    setResults]    = useState(null);
+  const [loading,    setLoading]    = useState(false);
+  const [error,      setError]      = useState(null);
+  const [elapsed,    setElapsed]    = useState(0);
+
+  const runScore = async () => {
+    setLoading(true); setError(null); setResults(null); setElapsed(0);
+    const t0 = Date.now();
+    const timer = setInterval(()=>setElapsed(Math.floor((Date.now()-t0)/1000)), 500);
+    try {
+      const body = {
+        conversation: messages,
+        ...(selFacets.length > 0 && {facet_ids: selFacets})
+      };
+      const res = await fetch(`${API}/score`, {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(`API error ${res.status}: ${txt}`);
+      }
+      const data = await res.json();
+      setResults(data);
+    } catch(e) {
+      setError(e.message);
+    } finally {
+      clearInterval(timer);
+      setLoading(false);
+    }
+  };
+
+  const addMessage = () => {
+    if (!newContent.trim()) return;
+    setMessages([...messages, {role:newRole, content:newContent.trim()}]);
+    setNewContent("");
+  };
+
+  const addFacet = (e) => {
+    if (e.key==="Enter" && facetInput.trim()) {
+      const id = facetInput.trim().toLowerCase().replace(/[^a-z0-9]+/g,"_");
+      if (!selFacets.includes(id)) setSelFacets([...selFacets, id]);
+      setFacetInput("");
+    }
+  };
+
+  return (
+    <div style={{flex:1,display:"flex",overflow:"hidden"}}>
+      {/* ── left panel ── */}
+      <div style={{width:420,borderRight:"1px solid var(--border)",display:"flex",flexDirection:"column",overflow:"hidden"}}>
+        <div style={{padding:"14px 20px",borderBottom:"1px solid var(--border)"}}>
+          <div style={{fontSize:15,fontWeight:600}}>Conversation</div>
+          <div style={{fontSize:12,color:"var(--muted)"}}>Scores every assistant turn</div>
+        </div>
+
+        {/* messages */}
+        <div style={{flex:1,overflow:"auto",padding:"12px 16px",display:"flex",flexDirection:"column",gap:8}}>
+          {messages.map((m,i)=>(
+            <div key={i} style={{display:"flex",gap:8,alignItems:"flex-start"}}>
+              <span style={{fontSize:11,fontWeight:600,padding:"3px 8px",borderRadius:4,background:m.role==="user"?"rgba(56,189,248,0.15)":"rgba(99,102,241,0.15)",color:m.role==="user"?"var(--info)":"var(--accent2)",flexShrink:0,marginTop:2}}>
+                {m.role==="user"?"USR":"AST"}
+              </span>
+              <div style={{flex:1,fontSize:13,lineHeight:1.5}}>{m.content}</div>
+              <button onClick={()=>setMessages(messages.filter((_,j)=>j!==i))} style={{background:"transparent",color:"var(--muted)",padding:"2px 4px",fontSize:12,flexShrink:0}}>✕</button>
+            </div>
+          ))}
+        </div>
+
+        {/* add message */}
+        <div style={{padding:"12px 16px",borderTop:"1px solid var(--border)",display:"flex",flexDirection:"column",gap:8}}>
+          <div style={{display:"flex",gap:8}}>
+            <select value={newRole} onChange={e=>setNewRole(e.target.value)} style={{width:110,flexShrink:0}}>
+              <option value="user">User</option>
+              <option value="assistant">Assistant</option>
+            </select>
+            <button onClick={addMessage} style={{background:"rgba(99,102,241,0.2)",color:"var(--accent2)",border:"1px solid rgba(99,102,241,0.3)",padding:"6px 14px",flexShrink:0}}>Add</button>
+          </div>
+          <textarea value={newContent} onChange={e=>setNewContent(e.target.value)}
+            onKeyDown={e=>{ if(e.key==="Enter"&&e.metaKey) addMessage(); }}
+            placeholder="Message content… (Cmd+Enter to add)" style={{height:68,resize:"none"}}/>
+        </div>
+
+        {/* facets */}
+        <div style={{padding:"12px 16px",borderTop:"1px solid var(--border)"}}>
+          <div style={{fontSize:12,color:"var(--muted)",marginBottom:6}}>
+            Facets to score <span style={{color:"var(--accent2)"}}>(leave empty = all 369)</span>
+          </div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:4,marginBottom:8,maxHeight:80,overflow:"auto"}}>
+            {selFacets.map(fid=>(
+              <span key={fid} style={{display:"inline-flex",alignItems:"center",gap:4,background:"rgba(99,102,241,0.1)",border:"1px solid rgba(99,102,241,0.25)",borderRadius:20,padding:"2px 8px",fontSize:11,color:"var(--accent2)"}}>
+                {fid}
+                <button onClick={()=>setSelFacets(selFacets.filter(f=>f!==fid))} style={{background:"transparent",color:"var(--accent2)",padding:0,fontSize:10,lineHeight:1}}>✕</button>
+              </span>
+            ))}
+          </div>
+          <input value={facetInput} onChange={e=>setFacetInput(e.target.value)} onKeyDown={addFacet}
+            placeholder="Type facet_id + Enter  (e.g. compassion)"/>
+        </div>
+
+        {/* score button */}
+        <div style={{padding:"12px 16px",borderTop:"1px solid var(--border)"}}>
+          <button onClick={runScore} disabled={loading||messages.length===0}
+            style={{width:"100%",background:loading?"rgba(99,102,241,0.4)":"var(--accent)",color:"#fff",padding:"10px 0",fontWeight:600,fontSize:14,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+            {loading ? <><Spinner/> Scoring… {elapsed}s</> : "⚡ Score Conversation"}
+          </button>
+          {loading && <div style={{marginTop:6,fontSize:11,color:"var(--muted)",textAlign:"center"}}>Running multi-turn chain-of-thought via Ollama…</div>}
+          {error   && <div style={{marginTop:8,fontSize:12,color:"var(--danger)",wordBreak:"break-word"}}>{error}</div>}
+        </div>
+      </div>
+
+      {/* ── right panel: results ── */}
+      <div style={{flex:1,overflow:"auto",padding:24}}>
+        {!results && !loading && (
+          <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100%",color:"var(--muted)",gap:12}}>
+            <span style={{fontSize:48}}>⚡</span>
+            <div style={{fontSize:15,fontWeight:500}}>Ready to evaluate</div>
+            <div style={{fontSize:13,textAlign:"center",maxWidth:300,lineHeight:1.7}}>Add a conversation on the left and click <b>Score Conversation</b>. Results will appear here with scores and confidence for each facet.</div>
+          </div>
+        )}
+
+        {results && (() => {
+          const s = results.summary || {};
+          return (
+            <>
+              {/* summary cards */}
+              <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:24}}>
+                {[
+                  {label:"Mean Score",    value: s.overall_mean_score?.toFixed(2) ?? "—",          color:"var(--accent)"},
+                  {label:"Confidence",    value: s.overall_mean_confidence ? (s.overall_mean_confidence*100).toFixed(0)+"%" : "—", color:"var(--success)"},
+                  {label:"Scores Computed", value: s.total_scores_computed ?? "—",                color:"var(--info)"},
+                  {label:"Safety Flags", value: s.safety_flags?.length ?? 0,                      color: s.safety_flags?.length>0?"var(--danger)":"var(--success)"},
+                ].map(c=>(
+                  <div key={c.label} style={{background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:12,padding:"14px 16px"}}>
+                    <div style={{fontSize:11,color:"var(--muted)",marginBottom:4}}>{c.label}</div>
+                    <div style={{fontSize:22,fontWeight:600,color:c.color}}>{c.value}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* per-turn results */}
+              {(results.turns||[]).map((turn,ti)=>(
+                <div key={ti} style={{background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:12,marginBottom:16,overflow:"hidden"}}>
+                  <div style={{padding:"12px 20px",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",gap:10}}>
+                    <span style={{background:"rgba(99,102,241,0.15)",color:"var(--accent2)",padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:600}}>{turn.role?.toUpperCase()}</span>
+                    <span style={{fontSize:13,color:"var(--muted)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{turn.content_preview}</span>
+                    <span style={{fontSize:11,color:"var(--muted)",fontFamily:"monospace",flexShrink:0}}>Turn {turn.turn_index}</span>
+                  </div>
+                  <div style={{padding:20,display:"flex",flexDirection:"column",gap:14}}>
+                    {Object.keys(turn.scores||{}).length===0
+                      ? <div style={{color:"var(--muted)",fontSize:13}}>No scores returned for this turn.</div>
+                      : Object.entries(turn.scores).map(([fid,fs])=>(
+                        <div key={fid}>
+                          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
+                            <span style={{fontSize:13,fontWeight:500}}>{fid.replace(/_/g," ")}</span>
+                            <ConfBadge value={fs.confidence??0.5}/>
+                          </div>
+                          <ScoreBar score={fs.score} color={DOMAIN_COLORS["linguistic"]}/>
+                          {fs.rationale && <div style={{fontSize:12,color:"var(--muted)",marginTop:5,lineHeight:1.5}}>{fs.rationale}</div>}
+                          {fs.error     && <div style={{fontSize:11,color:"var(--danger)",marginTop:4}}>⚠ {fs.error}</div>}
+                        </div>
+                      ))
+                    }
+                  </div>
+                </div>
+              ))}
+
+              {/* low-confidence flags */}
+              {s.low_confidence_flags?.length>0 && (
+                <div style={{background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.25)",borderRadius:12,padding:16,marginTop:8}}>
+                  <div style={{fontSize:13,fontWeight:600,color:"var(--warn)",marginBottom:8}}>⚠ Low-confidence scores — recommend human review</div>
+                  {s.low_confidence_flags.map((f,i)=>(
+                    <div key={i} style={{fontSize:12,color:"var(--muted)",marginBottom:3}}>
+                      Turn {f.turn_index} · <b style={{color:"var(--text)"}}>{f.facet_id}</b> → score {f.score}, conf {(f.confidence*100).toFixed(0)}%
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          );
+        })()}
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════
+   FACETS TAB — real API call to /facets
+══════════════════════════════════════ */
+function FacetsTab() {
+  const [facets,      setFacets]      = useState([]);
+  const [loading,     setLoading]     = useState(true);
+  const [error,       setError]       = useState(null);
+  const [search,      setSearch]      = useState("");
+  const [domainFilter,setDomainFilter]= useState("all");
+  const [domains,     setDomains]     = useState([]);
+
+  useEffect(()=>{
+    (async()=>{
+      try {
+        const [fRes, dRes] = await Promise.all([
+          fetch(`${API}/facets?limit=5000`),
+          fetch(`${API}/facets/domains`)
+        ]);
+        const fData = await fRes.json();
+        const dData = await dRes.json();
+        setFacets(fData.facets||[]);
+        setDomains(dData.domains||[]);
+      } catch(e) {
+        setError("Could not load facets — is the API running?");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  },[]);
+
+  const filtered = facets.filter(f=>
+    (domainFilter==="all"||f.domain===domainFilter) &&
+    (f.facet_name.toLowerCase().includes(search.toLowerCase()) || f.facet_id.includes(search.toLowerCase()))
+  );
+
+  if (loading) return <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:10,color:"var(--muted)"}}><Spinner/> Loading facets from API…</div>;
+  if (error)   return <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",color:"var(--danger)"}}>{error}</div>;
+
+  return (
+    <div style={{flex:1,overflow:"auto",padding:24}}>
+      <div style={{marginBottom:16}}>
+        <div style={{fontSize:16,fontWeight:600,marginBottom:2}}>Facet Registry</div>
+        <div style={{fontSize:13,color:"var(--muted)"}}>{facets.length} facets across {domains.length} domains</div>
+      </div>
+
+      {/* domain pills */}
+      <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}>
+        <button onClick={()=>setDomainFilter("all")} style={{padding:"5px 12px",borderRadius:20,background:domainFilter==="all"?"var(--accent)":"var(--bg2)",color:domainFilter==="all"?"#fff":"var(--muted)",border:"1px solid var(--border2)",fontSize:12}}>All</button>
+        {domains.map(d=>(
+          <button key={d} onClick={()=>setDomainFilter(domainFilter===d?"all":d)}
+            style={{padding:"5px 12px",borderRadius:20,background:domainFilter===d?`${DOMAIN_COLORS[d]||"#6366f1"}30`:"var(--bg2)",color:domainFilter===d?DOMAIN_COLORS[d]||"var(--accent2)":"var(--muted)",border:`1px solid ${domainFilter===d?(DOMAIN_COLORS[d]||"#6366f1")+"50":"var(--border2)"}`,fontSize:12}}>
+            {DOMAIN_ICONS[d]||"•"} {d}
+          </button>
+        ))}
+      </div>
+
+      <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search by name or ID…" style={{marginBottom:16}}/>
+
+      <div style={{fontSize:12,color:"var(--muted)",marginBottom:8}}>Showing {filtered.length} facets</div>
+
+      {/* table header */}
+      <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr",padding:"7px 14px",fontSize:11,color:"var(--muted)",fontWeight:600,textTransform:"uppercase",letterSpacing:"0.5px",borderBottom:"1px solid var(--border)"}}>
+        <span>Facet</span><span>Domain</span><span>Polarity</span><span>Context</span>
+      </div>
+
+      {filtered.map(f=>(
+        <div key={f.facet_id} style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr",padding:"10px 14px",borderBottom:"1px solid var(--border)",alignItems:"center"}}>
+          <div>
+            <div style={{fontSize:13,fontWeight:500}}>{f.facet_name}</div>
+            <div style={{fontSize:11,color:"var(--muted)",fontFamily:"monospace"}}>{f.facet_id}</div>
+          </div>
+          <span style={{fontSize:11,background:`${DOMAIN_COLORS[f.domain]||"#888"}20`,color:DOMAIN_COLORS[f.domain]||"#888",border:`1px solid ${DOMAIN_COLORS[f.domain]||"#888"}40`,borderRadius:20,padding:"2px 8px",display:"inline-block"}}>
+            {DOMAIN_ICONS[f.domain]||"•"} {f.domain}
+          </span>
+          <span style={{fontSize:11,color:f.polarity==="lower_is_better"?"var(--danger)":"var(--success)"}}>
+            {f.polarity==="lower_is_better"?"↓ lower=good":"↑ higher=good"}
+          </span>
+          <span style={{fontSize:11,color:f.requires_context?"var(--warn)":"var(--muted)"}}>
+            {f.requires_context?"✓ needs context":"—"}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════
+   SAMPLES TAB — loads from JSON files
+══════════════════════════════════════ */
+function SamplesTab() {
+  const [index,    setIndex]    = useState([]);
+  const [selected, setSelected] = useState(null);
+  const [detail,   setDetail]   = useState(null);
+  const [loading,  setLoading]  = useState(false);
+
+  useEffect(()=>{
+    fetch("../data/sample_conversations/_index.json")
+      .then(r=>r.json()).then(setIndex).catch(()=>{});
+  },[]);
+
+  const loadDetail = async (id) => {
+    setSelected(id); setDetail(null); setLoading(true);
+    try {
+      const res = await fetch(`../data/sample_conversations/${id}.json`);
+      const data = await res.json();
+      setDetail(data);
+    } catch(e) {}
+    setLoading(false);
+  };
+
+  return (
+    <div style={{flex:1,display:"flex",overflow:"hidden"}}>
+      <div style={{width:260,borderRight:"1px solid var(--border)",overflow:"auto",padding:12}}>
+        <div style={{fontSize:13,fontWeight:600,marginBottom:10,padding:"0 4px"}}>50 Sample Conversations</div>
+        {index.length===0
+          ? <div style={{fontSize:12,color:"var(--muted)",padding:"0 4px"}}>Open this page via a local server to load samples. Run:<br/><code style={{fontSize:11}}>python -m http.server 3000</code><br/>then visit localhost:3000/ui/</div>
+          : index.map(s=>(
+            <button key={s.id} onClick={()=>loadDetail(s.id)}
+              style={{width:"100%",textAlign:"left",padding:"9px 10px",borderRadius:8,marginBottom:3,background:selected===s.id?"rgba(99,102,241,0.15)":"var(--bg2)",border:`1px solid ${selected===s.id?"rgba(99,102,241,0.3)":"var(--border)"}`,color:"var(--text)"}}>
+              <div style={{fontSize:12,fontWeight:500,marginBottom:2}}>{s.title}</div>
+              <div style={{fontSize:11,color:"var(--muted)",fontFamily:"monospace"}}>{s.id}</div>
+            </button>
+          ))
+        }
+      </div>
+
+      <div style={{flex:1,overflow:"auto",padding:24}}>
+        {!selected && <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100%",color:"var(--muted)",gap:10}}><span style={{fontSize:36}}>🗂️</span><div>Select a conversation</div></div>}
+        {loading   && <div style={{display:"flex",alignItems:"center",gap:8,color:"var(--muted)"}}><Spinner/>Loading…</div>}
+        {detail && !loading && (
+          <>
+            <div style={{fontSize:16,fontWeight:600,marginBottom:4}}>{detail.title}</div>
+            <div style={{fontSize:12,color:"var(--muted)",marginBottom:16,fontFamily:"monospace"}}>{detail.id}</div>
+
+            {/* messages */}
+            <div style={{background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:12,padding:16,marginBottom:20}}>
+              {(detail.messages||[]).map((m,i)=>(
+                <div key={i} style={{display:"flex",gap:10,marginBottom:i<detail.messages.length-1?12:0}}>
+                  <span style={{fontSize:11,fontWeight:600,padding:"3px 8px",borderRadius:4,background:m.role==="user"?"rgba(56,189,248,0.15)":"rgba(99,102,241,0.15)",color:m.role==="user"?"var(--info)":"var(--accent2)",flexShrink:0,height:"fit-content"}}>{m.role==="user"?"USER":"AST"}</span>
+                  <p style={{fontSize:13,lineHeight:1.6,margin:0}}>{m.content}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* scores */}
+            {detail.scored_turns?.map((turn,ti)=>(
+              <div key={ti}>
+                <div style={{fontSize:13,fontWeight:600,marginBottom:10}}>
+                  Facet Scores — Turn {turn.turn_index}
+                  <span style={{marginLeft:8,fontSize:11,color:"var(--muted)",fontWeight:400}}>
+                    Mean {turn.summary?.mean_score} · Conf {(turn.summary?.mean_confidence*100||0).toFixed(0)}% · {turn.summary?.facets_scored} facets
+                  </span>
+                </div>
+                {Object.entries(turn.scores||{}).map(([fid,fs])=>(
+                  <div key={fid} style={{background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:10,padding:"11px 14px",marginBottom:6}}>
+                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
+                      <span style={{fontSize:13,fontWeight:500}}>{fid.replace(/_/g," ")}</span>
+                      <ConfBadge value={fs.confidence||0.5}/>
+                    </div>
+                    <ScoreBar score={fs.score} color="var(--accent)"/>
+                    {fs.rationale && <div style={{fontSize:12,color:"var(--muted)",marginTop:5}}>{fs.rationale}</div>}
+                  </div>
+                ))}
+              </div>
+            ))}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════
+   DOCS TAB
+══════════════════════════════════════ */
+function DocsTab() {
+  const sections = [
+    {title:"Quick Start", content:`# Run Order
+
+1. ollama pull qwen2.5:3b       (one time)
+2. ollama serve                  (keep open in terminal 1)
+3. uvicorn src.api.main:app \\
+     --reload --port 8000        (terminal 2)
+4. open ui/index.html            (browser)
+
+Score sample conversations:
+  python scripts/score_conversations.py \\
+    --input data/sample_conversations/ \\
+    --output results/`},
+    {title:"Scoring Flow", content:`# How Each Turn is Scored (No One-Shot)
+
+For every assistant turn × chunk of 20 facets:
+
+Turn 1 [you → model]
+  "Analyse this conversation turn step by step."
+
+Turn 2 [model → you]
+  Chain-of-thought reasoning (grammar, tone,
+  safety, emotion…)
+
+Turn 3 [you → model]
+  "Score these 20 facets. Return JSON."
+
+Turn 4 [model → you]
+  { "scores": { "compassion": { "score": 5,
+    "rationale": "..." } } }
+
+Turn 5 [you → model]
+  "How confident are you in each score (0-1)?"
+
+Turn 6 [model → you]
+  { "confidence": { "compassion": 0.91 } }
+
+This satisfies the "no one-shot" hard constraint.`},
+    {title:"Score Scale", content:`# Score Meanings
+
+1 = Poor       — fails the facet entirely
+2 = Below Avg  — partial failure, noticeable issues
+3 = Average    — meets minimum expectations
+4 = Good       — clearly above average
+5 = Excellent  — exemplary, near-perfect
+
+Confidence (0.0 – 1.0):
+  ≥ 0.80  High  — model is certain
+  0.5–0.8 Med   — some ambiguity
+  < 0.50  Low   — flag for human review`},
+    {title:"API Reference", content:`# Endpoints
+
+POST /score
+  Body: {
+    conversation: [{role, content}],
+    facet_ids?: ["compassion", ...],  // optional
+    model?: "qwen2.5:3b"
+  }
+  Returns: { turns, summary }
+
+POST /score/turn
+  Body: { content, role, context?, facet_ids? }
+  Returns: { turn_id, scores }
+
+GET /facets?domain=emotion&limit=100
+  Returns: { facets[], total }
+
+GET /facets/domains
+  Returns: { domains[], summary }
+
+GET /facets/reload
+  Hot-reloads facets CSV (no restart needed)
+
+GET /health
+  Returns: { api, registry, ollama }`},
+    {title:"Scale to 5000", content:`# Why It Scales Without Code Changes
+
+1. Chunked batching
+   Facets scored in groups of 20 per LLM call.
+   5000 facets = 250 chunks. Zero code change.
+
+2. Registry-driven
+   Add facets = add rows to facets.csv
+   then GET /facets/reload
+
+3. Async + semaphore
+   Chunks run in parallel with asyncio.
+   Max concurrent calls = configurable.
+
+4. evaluable_from_text flag
+   52 facets (lab/biometric) auto-skipped
+   so no wasted LLM calls.
+
+5. Score caching (future)
+   Key: (turn_hash, facet_id, model)
+   Skip re-scoring unchanged turns.`},
+  ];
+  const [active, setActive] = useState(0);
+  return (
+    <div style={{flex:1,display:"flex",overflow:"hidden"}}>
+      <div style={{width:180,borderRight:"1px solid var(--border)",padding:12,overflow:"auto"}}>
+        {sections.map((s,i)=>(
+          <button key={i} onClick={()=>setActive(i)} style={{width:"100%",textAlign:"left",padding:"8px 10px",borderRadius:8,background:active===i?"rgba(99,102,241,0.15)":"transparent",color:active===i?"var(--accent2)":"var(--muted)",marginBottom:2,border:active===i?"1px solid rgba(99,102,241,0.2)":"1px solid transparent",fontWeight:active===i?500:400}}>
+            {s.title}
+          </button>
+        ))}
+      </div>
+      <div style={{flex:1,overflow:"auto",padding:32}}>
+        <pre style={{fontFamily:"monospace",fontSize:13,lineHeight:1.8,color:"var(--text)",whiteSpace:"pre-wrap",margin:0}}>{sections[active].content}</pre>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════
+   ROOT APP
+══════════════════════════════════════ */
+function App() {
+  const [tab,       setTab]       = useState("score");
+  const [apiStatus, setApiStatus] = useState("checking");
+
+  useEffect(()=>{
+    fetch(`${API}/health`)
+      .then(r=>r.json())
+      .then(d=> setApiStatus(d.api==="ok"?"ok":"error"))
+      .catch(()=>setApiStatus("error"));
+  },[]);
+
+  return (
+    <div style={{display:"flex",width:"100vw",height:"100vh",overflow:"hidden"}}>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      <Sidebar active={tab} onTab={setTab} apiStatus={apiStatus}/>
+      <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+        {/* topbar */}
+        <div style={{padding:"10px 20px",borderBottom:"1px solid var(--border)",background:"var(--bg2)",display:"flex",alignItems:"center",gap:8}}>
+          <span style={{fontSize:12,color:"var(--muted)"}}>
+            {tab==="score"  &&"Score conversation turns across 369 facets in real time"}
+            {tab==="facets" &&"Browse all facets loaded from the registry"}
+            {tab==="samples"&&"50 pre-scored example conversations"}
+            {tab==="docs"   &&"Architecture, API reference, and run instructions"}
+          </span>
+          {apiStatus!=="ok" && (
+            <span style={{marginLeft:"auto",fontSize:12,color:"var(--danger)"}}>
+              ⚠ API offline — run: uvicorn src.api.main:app --reload --port 8000
+            </span>
+          )}
+        </div>
+        <div style={{flex:1,display:"flex",overflow:"hidden"}}>
+          {tab==="score"   && <ScoreTab/>}
+          {tab==="facets"  && <FacetsTab/>}
+          {tab==="samples" && <SamplesTab/>}
+          {tab==="docs"    && <DocsTab/>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>

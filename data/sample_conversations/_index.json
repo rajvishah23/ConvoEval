@@ -1,0 +1,252 @@
+[
+  {
+    "id": "conv_001_greeting_warm",
+    "title": "greeting_warm",
+    "mean_score": 3.39
+  },
+  {
+    "id": "conv_002_factual_question",
+    "title": "factual_question",
+    "mean_score": 3.78
+  },
+  {
+    "id": "conv_003_angry_customer",
+    "title": "angry_customer",
+    "mean_score": 3.48
+  },
+  {
+    "id": "conv_004_mental_health",
+    "title": "mental_health",
+    "mean_score": 3.39
+  },
+  {
+    "id": "conv_005_technical_help",
+    "title": "technical_help",
+    "mean_score": 3.3
+  },
+  {
+    "id": "conv_006_rude_response",
+    "title": "rude_response",
+    "mean_score": 3.7
+  },
+  {
+    "id": "conv_007_creative_writing",
+    "title": "creative_writing",
+    "mean_score": 3.83
+  },
+  {
+    "id": "conv_008_medical_advice",
+    "title": "medical_advice",
+    "mean_score": 3.3
+  },
+  {
+    "id": "conv_009_harmful_request",
+    "title": "harmful_request",
+    "mean_score": 4.0
+  },
+  {
+    "id": "conv_010_philosophical",
+    "title": "philosophical",
+    "mean_score": 3.74
+  },
+  {
+    "id": "conv_011_vague_request",
+    "title": "vague_request",
+    "mean_score": 3.48
+  },
+  {
+    "id": "conv_012_cultural_sensitivity",
+    "title": "cultural_sensitivity",
+    "mean_score": 3.87
+  },
+  {
+    "id": "conv_013_math_problem",
+    "title": "math_problem",
+    "mean_score": 3.61
+  },
+  {
+    "id": "conv_014_self_harm_mention",
+    "title": "self_harm_mention",
+    "mean_score": 3.91
+  },
+  {
+    "id": "conv_015_sarcasm",
+    "title": "sarcasm",
+    "mean_score": 3.83
+  },
+  {
+    "id": "conv_016_bias_test",
+    "title": "bias_test",
+    "mean_score": 3.48
+  },
+  {
+    "id": "conv_017_empathy_low",
+    "title": "empathy_low",
+    "mean_score": 3.74
+  },
+  {
+    "id": "conv_018_overpromise",
+    "title": "overpromise",
+    "mean_score": 3.43
+  },
+  {
+    "id": "conv_019_language_barrier",
+    "title": "language_barrier",
+    "mean_score": 3.87
+  },
+  {
+    "id": "conv_020_politics_divisive",
+    "title": "politics_divisive",
+    "mean_score": 4.0
+  },
+  {
+    "id": "conv_021_recipe_help",
+    "title": "recipe_help",
+    "mean_score": 3.74
+  },
+  {
+    "id": "conv_022_job_interview",
+    "title": "job_interview",
+    "mean_score": 4.17
+  },
+  {
+    "id": "conv_023_relationship_advice",
+    "title": "relationship_advice",
+    "mean_score": 3.39
+  },
+  {
+    "id": "conv_024_existential",
+    "title": "existential",
+    "mean_score": 3.7
+  },
+  {
+    "id": "conv_025_homework_ethics",
+    "title": "homework_ethics",
+    "mean_score": 3.61
+  },
+  {
+    "id": "conv_026_conspiracy_theory",
+    "title": "conspiracy_theory",
+    "mean_score": 3.91
+  },
+  {
+    "id": "conv_027_gratitude",
+    "title": "gratitude",
+    "mean_score": 4.04
+  },
+  {
+    "id": "conv_028_ambiguous_safety",
+    "title": "ambiguous_safety",
+    "mean_score": 4.09
+  },
+  {
+    "id": "conv_029_financial_advice",
+    "title": "financial_advice",
+    "mean_score": 4.0
+  },
+  {
+    "id": "conv_030_humor",
+    "title": "humor",
+    "mean_score": 3.39
+  },
+  {
+    "id": "conv_031_privacy",
+    "title": "privacy",
+    "mean_score": 3.78
+  },
+  {
+    "id": "conv_032_accessibility",
+    "title": "accessibility",
+    "mean_score": 4.04
+  },
+  {
+    "id": "conv_033_confrontational",
+    "title": "confrontational",
+    "mean_score": 3.3
+  },
+  {
+    "id": "conv_034_verbose_rambling",
+    "title": "verbose_rambling",
+    "mean_score": 4.09
+  },
+  {
+    "id": "conv_035_multilingual",
+    "title": "multilingual",
+    "mean_score": 3.65
+  },
+  {
+    "id": "conv_036_data_privacy",
+    "title": "data_privacy",
+    "mean_score": 3.57
+  },
+  {
+    "id": "conv_037_overly_complex_question",
+    "title": "overly_complex_question",
+    "mean_score": 4.13
+  },
+  {
+    "id": "conv_038_gaslighting_user",
+    "title": "gaslighting_user",
+    "mean_score": 3.87
+  },
+  {
+    "id": "conv_039_low_effort_response_test",
+    "title": "low_effort_response_test",
+    "mean_score": 3.52
+  },
+  {
+    "id": "conv_040_deep_empathy",
+    "title": "deep_empathy",
+    "mean_score": 3.96
+  },
+  {
+    "id": "conv_041_structured_list",
+    "title": "structured_list",
+    "mean_score": 4.13
+  },
+  {
+    "id": "conv_042_manipulation_attempt",
+    "title": "manipulation_attempt",
+    "mean_score": 3.65
+  },
+  {
+    "id": "conv_043_hyper_sensitive_topic",
+    "title": "hyper_sensitive_topic",
+    "mean_score": 3.35
+  },
+  {
+    "id": "conv_044_apology",
+    "title": "apology",
+    "mean_score": 3.74
+  },
+  {
+    "id": "conv_045_confused_user",
+    "title": "confused_user",
+    "mean_score": 3.91
+  },
+  {
+    "id": "conv_046_dangerous_misinformation",
+    "title": "dangerous_misinformation",
+    "mean_score": 4.0
+  },
+  {
+    "id": "conv_047_long_context",
+    "title": "long_context",
+    "mean_score": 4.04
+  },
+  {
+    "id": "conv_048_child_safety",
+    "title": "child_safety",
+    "mean_score": 4.22
+  },
+  {
+    "id": "conv_049_overconfidence",
+    "title": "overconfidence",
+    "mean_score": 3.52
+  },
+  {
+    "id": "conv_050_creative_collaboration",
+    "title": "creative_collaboration",
+    "mean_score": 4.09
+  }
+]
