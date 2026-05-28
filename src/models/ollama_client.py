@@ -55,6 +55,7 @@ class OllamaClient:
             await self._session.close()
 
     # ── HuggingFace backend ───────────────────────────────────────────────────
+ # ── HuggingFace (Now supports Groq Proxy) ─────────────────────────────────
     async def _hf_chat(self, messages: list[dict], system: Optional[str], max_tokens: int) -> str:
         session = await self._get_session()
         headers = {
@@ -73,12 +74,17 @@ class OllamaClient:
             "temperature": 0.1,
             "stream": False,
         }
-        url = f"https://api-inference.huggingface.co/v1/chat/completions"
+        
+        # INTERCEPT AND ROUTE TO GROQ IF USING GROQ KEY
+        if str(self.hf_token).startswith("gsk_"):
+            url = "https://api.groq.com/openai/v1/chat/completions"
+        else:
+            url = f"https://api-inference.huggingface.co/v1/chat/completions"
+            
         async with session.post(url, headers=headers, json=payload) as resp:
             resp.raise_for_status()
             data = await resp.json()
             return data["choices"][0]["message"]["content"]
-
     # ── Ollama backend ────────────────────────────────────────────────────────
     @retry(stop=stop_after_attempt(3),
            wait=wait_exponential(multiplier=1, min=2, max=10),
